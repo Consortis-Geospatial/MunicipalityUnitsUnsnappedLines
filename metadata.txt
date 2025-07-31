@@ -1,0 +1,9 @@
+[general]
+name=Consortis Geospatial MunicipalityUnitsUnsnappedLines
+qgisMinimumVersion=3.10
+qgisMaximumVersion=3.99
+description=Έλεγχος αγκύρωσης οδικού δικτύου στα όρια της Δημοτικής Ενότητας.
+author=Consortis Geospatial
+version=2.1
+email=gkaravelis@consortis.gr
+icon=icon.png
