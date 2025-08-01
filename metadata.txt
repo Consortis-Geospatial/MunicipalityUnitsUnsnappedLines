@@ -1,9 +1,21 @@
 [general]
-name=Consortis Geospatial MunicipalityUnitsUnsnappedLines
-qgisMinimumVersion=3.10
-qgisMaximumVersion=3.99
-description=Έλεγχος αγκύρωσης οδικού δικτύου στα όρια της Δημοτικής Ενότητας.
-author=Consortis Geospatial
-version=2.1
+name=MunicipalityUnitsUnsnappedLines
+description=Detects road network lines that do not anchor properly at municipal boundaries.
+about=MunicipalityUnitsUnsnappedLines is a QGIS plugin that identifies road network line features (multiline geometries) whose start or end points do not properly intersect municipal boundary polygons within a user-defined distance threshold.
+
+ This helps reveal topological issues or missing connections between networks and administrative borders—especially useful when integrating road datasets from different sources.
+
+ Users can specify a maximum snapping distance (in meters), choose to run the check on full layers or only on selected features, and inspect flagged line endpoints in an interactive dock. Results can be exported to a point shapefile for further correction or review.
+
+version=1.0
+qgisMinimumVersion=3.0
+author=Gkaravelis Andreas - Consortis Geospatial
 email=gkaravelis@consortis.gr
+category=Vector
+homepage=https://github.com/Consortis-Geospatial
+tracker=https://github.com/Consortis-Geospatial/MunicipalityUnitsUnsnappedLines/issues
+repository=https://github.com/Consortis-Geospatial/MunicipalityUnitsUnsnappedLines
+experimental=False
+deprecated=False
 icon=icon.png
+tags=Roadnetwork, Topology, BoundaryCheck, Connectivity, NetworkAnalysis, GIS
