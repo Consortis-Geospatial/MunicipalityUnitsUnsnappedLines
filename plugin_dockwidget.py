@@ -17,31 +17,31 @@ from qgis.gui import QgsRubberBand
 class PluginDockWidget(QDockWidget):
     def __init__(self, iface, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Consortis Geospatial Municipality Units Unsnapped Lines")
+        self.setWindowTitle("Road Network Anchor Check at Municipal Boundaries")
         self.resize(300, 400)
 
-        # Create the main widget and layout
+        # Main widget and layout
         self.main_widget = QWidget()
         self.layout = QVBoxLayout(self.main_widget)
 
         # Polygon Layer ComboBox
-        self.polygonLayerLabel = QLabel("Πολυγωνικό Layer Δημοτικής Ενότητας:")
+        self.polygonLayerLabel = QLabel("Municipality Polygon Layer:")
         self.layout.addWidget(self.polygonLayerLabel)
         self.polygonLayerCombo = QComboBox()
         self.layout.addWidget(self.polygonLayerCombo)
 
         # Multiline Layer ComboBox
-        self.mlineLayerLabel = QLabel("Layer Οδικού δικτύου:")
+        self.mlineLayerLabel = QLabel("Road Network Line Layer:")
         self.layout.addWidget(self.mlineLayerLabel)
         self.mlineLayerCombo = QComboBox()
         self.layout.addWidget(self.mlineLayerCombo)
 
         # Checkbox for selected features
-        self.check_selected = QCheckBox("Έλεγχος μόνο στα επιλεγμένα")
+        self.check_selected = QCheckBox("Check only selected features")
         self.layout.addWidget(self.check_selected)
 
         # Buffer Distance SpinBox
-        self.bufferLabel = QLabel("Μέγιστη απόσταση από τα όρια της Δημοτικής Ενότητας:")
+        self.bufferLabel = QLabel("Max distance from municipality boundary (meters):")
         self.layout.addWidget(self.bufferLabel)
         self.bufferSpinBox = QDoubleSpinBox()
         self.bufferSpinBox.setMinimum(0.0)
@@ -50,39 +50,35 @@ class PluginDockWidget(QDockWidget):
         self.layout.addWidget(self.bufferSpinBox)
 
         # Run Button
-        self.runButton = QPushButton("Έλεγχος")
+        self.runButton = QPushButton("Run Check")
         self.layout.addWidget(self.runButton)
 
         # Progress Bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setAlignment(Qt.AlignCenter)
-        self.progress_bar.setVisible(False)  # Initially hidden
+        self.progress_bar.setVisible(False)
         self.layout.addWidget(self.progress_bar)
 
         # Result List
-        self.resultLabel = QLabel("Αποτελέσματα:")
+        self.resultLabel = QLabel("Results:")
         self.layout.addWidget(self.resultLabel)
         self.resultList = QListWidget()
         self.layout.addWidget(self.resultList)
 
-        # Download Shapefile Button (created once, hidden initially)
+        # Shapefile Export Button
         self.download_button = QPushButton("Download Shapefile")
         self.download_button.clicked.connect(self.export_to_shapefile)
-        self.download_button.setVisible(False)  # Initially hidden
+        self.download_button.setVisible(False)
         self.layout.addWidget(self.download_button)
 
-        # Set the layout
         self.setWidget(self.main_widget)
 
-        # Initialize iface and canvas
         self.iface = iface
         self.canvas = iface.mapCanvas()
-        self.flagged_points = []  # To store flagged points for export
+        self.flagged_points = []
 
-        # Populate layers
         self.populate_layers()
 
-        # Connect signals
         self.runButton.clicked.connect(self.run_analysis)
         self.resultList.itemClicked.connect(self.zoom_to_vertex)
 
@@ -109,31 +105,24 @@ class PluginDockWidget(QDockWidget):
         self.progress_bar.reset()
 
     def run_analysis(self):
-        # Hide the download button at the start of a new check
         self.download_button.setVisible(False)
-
         self.resultList.clear()
+
         buffer_dist = self.bufferSpinBox.value()
         poly_layer = QgsProject.instance().mapLayer(self.polygonLayerCombo.currentData())
         mline_layer = QgsProject.instance().mapLayer(self.mlineLayerCombo.currentData())
 
         if not poly_layer or not mline_layer:
-            self.iface.messageBar().pushMessage("Σφάλμα", "Invalid or missing input layers", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Error", "Missing or invalid input layers", level=Qgis.Critical)
             return
 
-        # Check if "Έλεγχος μόνο στα επιλεγμένα" is checked but no selections exist
         if self.check_selected.isChecked():
-            poly_selected_count = poly_layer.selectedFeatureCount()
-            mline_selected_count = mline_layer.selectedFeatureCount()
-            if poly_selected_count == 0 or mline_selected_count == 0:
-                self.iface.messageBar().pushMessage("Σφάλμα", "Παρακαλώ επιλέξτε οντότητες προς έλεγχο", level=Qgis.Critical)
+            if poly_layer.selectedFeatureCount() == 0 or mline_layer.selectedFeatureCount() == 0:
+                self.iface.messageBar().pushMessage("Error", "Please select features to check", level=Qgis.Critical)
                 return
-
-        # Check features based on checkbox
-        if self.check_selected.isChecked():
             poly_features = poly_layer.selectedFeatures()
             mline_features = mline_layer.selectedFeatures()
-            total_features = max(poly_layer.selectedFeatureCount(), mline_layer.selectedFeatureCount())
+            total_features = max(len(poly_features), len(mline_features))
         else:
             poly_features = poly_layer.getFeatures()
             mline_features = mline_layer.getFeatures()
@@ -141,25 +130,23 @@ class PluginDockWidget(QDockWidget):
 
         self.start_progress(total_features)
 
-        tolerance = 1e-6  # A small snapping tolerance threshold
+        tolerance = 1e-6
         line_index = QgsSpatialIndex()
         line_features = {}
         progress_idx = 0
 
-        # Index line features
         for m_feat in mline_features:
             line_index.addFeature(m_feat)
             progress_idx += 1
             self.update_progress((progress_idx * 100) // total_features)
 
-        self.flagged_points = []  # Reset flagged points
+        self.flagged_points = []
         progress_idx = 0
 
-        # Check each polygon
         for poly_feat in poly_features:
             geom = poly_feat.geometry()
             if not geom.isGeosValid():
-                self.iface.messageBar().pushMessage("Προσοχή", f"Invalid geometry Πολυγώνου με FID {poly_feat.id()}", level=Qgis.Warning)
+                self.iface.messageBar().pushMessage("Warning", f"Invalid geometry in polygon FID {poly_feat.id()}", level=Qgis.Warning)
                 continue
 
             outer_buffer = geom.buffer(buffer_dist, 8)
@@ -168,7 +155,7 @@ class PluginDockWidget(QDockWidget):
             boundary_geom = geom.constGet().boundary()
             boundary = QgsGeometry(boundary_geom)
             if boundary.isEmpty():
-                self.iface.messageBar().pushMessage("Προσοχή", f"Empty boundary Πολυγώνου με FID {poly_feat.id()}", level=Qgis.Warning)
+                self.iface.messageBar().pushMessage("Warning", f"Empty boundary for polygon FID {poly_feat.id()}", level=Qgis.Warning)
                 continue
 
             candidate_ids = line_index.intersects(virtual_buffer.boundingBox())
@@ -193,32 +180,28 @@ class PluginDockWidget(QDockWidget):
                     pt_geom = QgsGeometry.fromPointXY(point)
                     distance_to_boundary = pt_geom.distance(boundary)
                     if distance_to_boundary < tolerance:
-                        continue  # Skip snapped points
+                        continue
 
                     if virtual_buffer.contains(pt_geom):
                         label = f"FID {m_feat.id()} | {'Start' if idx == 0 else 'End'}"
                         item = QListWidgetItem(label)
                         item.setData(Qt.UserRole, point)
                         self.resultList.addItem(item)
-                        self.flagged_points.append(point)  # Store flagged point for export
+                        self.flagged_points.append(point)
             progress_idx += 1
             self.update_progress((progress_idx * 100) // total_features)
 
         self.end_progress()
 
-        count = self.resultList.count()
-        if count > 0:
-            # Show the download button
+        if self.resultList.count() > 0:
             self.download_button.setVisible(True)
         else:
-            # Show message but keep the panel open
-            self.iface.messageBar().pushMessage("Έλεγχος αγκύρωσης οδικού δικτύου", "Σύνολο: 0", level=Qgis.Info)
+            self.iface.messageBar().pushMessage("Road Network Anchor Check", "Total: 0", level=Qgis.Info)
 
     def export_to_shapefile(self):
         if not self.flagged_points:
             return
 
-        # Create a new point layer for flagged points with EPSG:2100
         vl = QgsVectorLayer("Point?crs=epsg:2100", "unsnapped_line_endpoints", "memory")
         pr = vl.dataProvider()
         vl.startEditing()
@@ -231,16 +214,15 @@ class PluginDockWidget(QDockWidget):
         vl.commitChanges()
         vl.updateExtents()
 
-        # Save to shapefile
         from qgis.PyQt.QtWidgets import QFileDialog
         save_path, _ = QFileDialog.getSaveFileName(None, "Save Shapefile", "", "Shapefile (*.shp)")
         if save_path:
             from qgis.core import QgsVectorFileWriter
             error = QgsVectorFileWriter.writeAsVectorFormat(vl, save_path, "UTF-8", vl.crs(), "ESRI Shapefile")
             if error[0] == QgsVectorFileWriter.NoError:
-                self.iface.messageBar().pushSuccess("Εξαγωγή", "Το shapefile αποθηκεύτηκε επιτυχώς.")
+                self.iface.messageBar().pushSuccess("Export", "Shapefile saved successfully.")
             else:
-                self.iface.messageBar().pushCritical("Σφάλμα", "Αποτυχία αποθήκευσης του shapefile.")
+                self.iface.messageBar().pushCritical("Error", "Failed to save shapefile.")
 
     def zoom_to_vertex(self, item):
         pt = item.data(Qt.UserRole)

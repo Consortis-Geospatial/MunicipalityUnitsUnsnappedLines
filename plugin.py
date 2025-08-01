@@ -12,13 +12,13 @@ class PolygonMlineBufferPlugin:
 
     def initGui(self):
         icon = QIcon(os.path.join(self.plugin_dir, 'icon.png'))
-        self.action = QAction(icon, "Έλεγχος αγκύρωσης οδικού δικτύου στα όρια της Δημοτικής Ενότητας", self.iface.mainWindow())
+        self.action = QAction(icon, "Check Road Network Connectivity at Municipal Boundaries", self.iface.mainWindow())
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
-        self.iface.addPluginToMenu("&Έλεγχος αγκύρωσης οδικού δικτύου στα όρια της Δημοτικής Ενότητας", self.action)
+        self.iface.addPluginToMenu("&Check Road Network Connectivity at Municipal Boundaries", self.action)
 
     def unload(self):
-        self.iface.removePluginMenu("&Έλεγχος αγκύρωσης οδικού δικτύου στα όρια της Δημοτικής Ενότητας", self.action)
+        self.iface.removePluginMenu("&Check Road Network Connectivity at Municipal Boundaries", self.action)
         self.iface.removeToolBarIcon(self.action)
         if self.dockwidget:
             self.iface.removeDockWidget(self.dockwidget)
@@ -28,5 +28,5 @@ class PolygonMlineBufferPlugin:
         # Create or show the dock widget
         if not self.dockwidget:
             self.dockwidget = PluginDockWidget(self.iface)
-            self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.dockwidget)
+            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dockwidget)  # Dock on the right
         self.dockwidget.show()
