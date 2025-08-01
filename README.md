@@ -1,3 +1,7 @@
+<div align=center>
+   <img width="64" height="64" alt="icon" src="https://github.com/user-attachments/assets/23817e1c-7e13-43bc-8823-e806d95ab914" />
+</div>
+
 # MunicipalityUnitsUnsnappedLines
 **MunicipalityUnitsUnsnappedLines** is a QGIS plugin that identifies road network line features (multiline geometries) whose start or end points are not properly snapped to municipal boundary polygons within a user-defined distance threshold. This helps reveal topological issues or missing connections in road networks near administrative borders, especially useful when integrating datasets from different sources. Users can specify a maximum snapping distance (in meters), choose to analyze full layers or only selected features, and inspect flagged line endpoints in an interactive dock. Results can be exported to a point shapefile for further correction or review.
 
@@ -80,3 +84,7 @@ Coming Soon...
 
 ## License
 This plugin is released under the GPL-3.0 license.
+
+<div align=center>
+   <img width="64" height="64" alt="icon" src="https://github.com/user-attachments/assets/23817e1c-7e13-43bc-8823-e806d95ab914" />
+</div>
